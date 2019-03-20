@@ -77,7 +77,7 @@ class DCGAN():
             if layer_index == 0:
                 model.add(Dense(input_dim=self.code_dim, output_dim=dim1 * dim2 * filter_num, activation='relu'))
                 model.add(BatchNormalization(momentum=0.8))
-                model.add(Reshape((dim1, dim1, filter_num)))
+                model.add(Reshape((dim1, dim2, filter_num)))
                 model.add(UpSampling2D(size=(2, 2)))
             else:
                 model.add(Conv2D(filter_num, kernel_size=self.kernel_size, kernel_initializer='glorot_normal',
@@ -86,6 +86,7 @@ class DCGAN():
                 model.add(UpSampling2D(size=(2, 2)))
         model.add(Conv2D(self.image_channel, self.kernel_size, kernel_initializer='glorot_normal', padding='same',
                          activation='tanh'))
+        model.summary()
         return model
 
     def discriminator_model(self):
@@ -106,6 +107,7 @@ class DCGAN():
             # model.add(BatchNormalization(momentum=0.8))
         model.add(Flatten())
         model.add(Dense(1, activation='sigmoid'))
+        model.summary()
         return model
 
     def encoder_model(self):
@@ -160,64 +162,65 @@ class DCGAN():
                 g_loss = g_plus_d.train_on_batch(noise, [1] * self.batch_size)
                 self.discriminator.trainable = True
                 print("batch: ", batch, "/", batch_num, ", d_loss: ", d_loss[0], ", g_loss: ", g_loss[0])
-
-            # ---------------------
-            #  Save Images
-            # ---------------------
-            noise = np.random.uniform(-1, 1, size=(10 * 10, self.code_dim))
-            images = self.generator.predict(noise)
-            images = (images + 1) * 127.5
-
-            noise_nice = np.random.uniform(-1, 1, size=(2000, self.code_dim))
-            images_nice = self.generator.predict(noise_nice)
-            images_nice = (images_nice + 1) * 127.5
-            d_predict = self.discriminator.predict(images_nice)
-            d_pred_sort_index = np.argsort(-d_predict, axis=0).reshape(-1, )
-
-            fig, axs = plt.subplots(10, 10)
-            cnt = 0
-            for i in range(10):
-                for j in range(10):
-                    if self.dataset == 'MNIST':
-                        axs[i, j].imshow(images[cnt, :, :, 0], cmap='gray')
-                    else:
-                        r = Image.fromarray(images[cnt, :, :, 0]).convert('L')
-                        g = Image.fromarray(images[cnt, :, :, 1]).convert('L')
-                        b = Image.fromarray(images[cnt, :, :, 2]).convert('L')
-                        img = Image.merge('RGB', (r, g, b))
-                        axs[i, j].imshow(img)
-                    axs[i, j].axis('off')
-                    cnt += 1
-            dirs = 'images/random/' + self.dataset + '_' + self.class_name
-            if not os.path.exists(dirs):
-                os.makedirs(dirs)
-            fig.savefig(dirs + '/epoch_' + str(epoch) + '.png')
-            plt.close()
-
-            fig, axs = plt.subplots(10, 10)
-            cnt = 0
-            for i in range(10):
-                for j in range(10):
-                    index_nice = d_pred_sort_index[cnt]
-                    if self.dataset == 'MNIST':
-                        axs[i, j].imshow(images_nice[index_nice, :, :, 0], cmap='gray')
-                    else:
-                        r = Image.fromarray(images_nice[index_nice, :, :, 0]).convert('L')
-                        g = Image.fromarray(images_nice[index_nice, :, :, 1]).convert('L')
-                        b = Image.fromarray(images_nice[index_nice, :, :, 2]).convert('L')
-                        img = Image.merge('RGB', (r, g, b))
-                        axs[i, j].imshow(img)
-                    axs[i, j].axis('off')
-                    cnt += 1
-            dirs = 'images/nice/' + self.dataset + '_' + self.class_name
-            if not os.path.exists(dirs):
-                os.makedirs(dirs)
-            fig.savefig(dirs + '/epoch_' + str(epoch) + '.png')
-            plt.close()
-
-            # ---------------------
-            #  Save Models
-            # ---------------------
+            
             if epoch % 50 == 49:
+                # ---------------------
+                #  Save Images
+                # ---------------------
+                noise = np.random.uniform(-1, 1, size=(10 * 10, self.code_dim))
+                images = self.generator.predict(noise)
+                images = (images + 1) * 127.5
+
+                noise_nice = np.random.uniform(-1, 1, size=(2000, self.code_dim))
+                images_nice = self.generator.predict(noise_nice)
+                images_nice = (images_nice + 1) * 127.5
+                d_predict = self.discriminator.predict(images_nice)
+                d_pred_sort_index = np.argsort(-d_predict, axis=0).reshape(-1, )
+
+                fig, axs = plt.subplots(10, 10)
+                cnt = 0
+                for i in range(10):
+                    for j in range(10):
+                        if self.dataset == 'MNIST':
+                            axs[i, j].imshow(images[cnt, :, :, 0], cmap='gray')
+                        else:
+                            r = Image.fromarray(images[cnt, :, :, 0]).convert('L')
+                            g = Image.fromarray(images[cnt, :, :, 1]).convert('L')
+                            b = Image.fromarray(images[cnt, :, :, 2]).convert('L')
+                            img = Image.merge('RGB', (r, g, b))
+                            axs[i, j].imshow(img)
+                        axs[i, j].axis('off')
+                        cnt += 1
+                dirs = 'images/random/' + self.dataset + '_' + self.class_name
+                if not os.path.exists(dirs):
+                    os.makedirs(dirs)
+                fig.savefig(dirs + '/epoch_' + str(epoch) + '.png')
+                plt.close()
+
+                fig, axs = plt.subplots(10, 10)
+                cnt = 0
+                for i in range(10):
+                    for j in range(10):
+                        index_nice = d_pred_sort_index[cnt]
+                        if self.dataset == 'MNIST':
+                            axs[i, j].imshow(images_nice[index_nice, :, :, 0], cmap='gray')
+                        else:
+                            r = Image.fromarray(images_nice[index_nice, :, :, 0]).convert('L')
+                            g = Image.fromarray(images_nice[index_nice, :, :, 1]).convert('L')
+                            b = Image.fromarray(images_nice[index_nice, :, :, 2]).convert('L')
+                            img = Image.merge('RGB', (r, g, b))
+                            axs[i, j].imshow(img)
+                        axs[i, j].axis('off')
+                        cnt += 1
+                dirs = 'images/nice/' + self.dataset + '_' + self.class_name
+                if not os.path.exists(dirs):
+                    os.makedirs(dirs)
+                fig.savefig(dirs + '/epoch_' + str(epoch) + '.png')
+                plt.close()
+
+                # ---------------------
+                #  Save Models
+                # ---------------------
+            
                 self.generator.save_weights('model/' + self.dataset + '_' + self.class_name + '_generator_epoch_' + str(epoch) + '.hs')
                 self.discriminator.save_weights('model/' + self.dataset + '_' + self.class_name + '_discriminator_epoch_' + str(epoch) + '.hs')
